@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+
+  traefik:
+    image: traefik:v2.4
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      
+  frontend:
+    image: node:16
+    container_name: haraya-solutions-frontend
+    working_dir: /app/frontend
+    volumes:
+      - ./src/frontend:/app/frontend
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`frontend.harayasolutions.local`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+    
+  whoami:
+    image: containous/whoami
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.local`)"
+      - "traefik.http.routers.whoami.entrypoints=web"
+    
+networks:
+  haraya:
+    external: true
