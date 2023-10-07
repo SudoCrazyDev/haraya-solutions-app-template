@@ -32,13 +32,14 @@ services:
       - backend
       
   backend:
-    image: php:8.2-fpm
+    image: php:8.2.11
     container_name: haraya-solutions-backend
     working_dir: /app/backend
     ports:
-      - "9000:9000"
+      - "8000:8000"
     volumes:
       - ./src/backend:/app/backend
+    command: php artisan serve --host=0.0.0.0 --port=8000
     environment:
       DB_CONNECTION: ${DB_CONNECTION}
       DB_HOST: ${DB_HOST}
