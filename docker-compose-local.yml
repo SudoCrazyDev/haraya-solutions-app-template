@@ -4,6 +4,7 @@ services:
 
   traefik:
     image: traefik:v2.4
+    container_name: haraya-solutions-traefik
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
@@ -27,14 +28,68 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`frontend.harayasolutions.local`)"
       - "traefik.http.routers.frontend.entrypoints=web"
+    depends_on:
+      - backend
+      
+  backend:
+    image: php:8.2-fpm
+    container_name: haraya-solutions-backend
+    working_dir: /app/backend
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./src/backend:/app/backend
+    environment:
+      DB_CONNECTION: ${DB_CONNECTION}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.harayasolutions.local`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+    depends_on:
+      - mariadb
+      - mailhog
     
+  mariadb:
+    image: mariadb:latest
+    container_name: haraya-solutions-database
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb_data:/var/lib/
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mariadb.rule=Host(`database.harayasolutions.local`)"
+      - "traefik.http.routers.mariadb.entrypoints=web"
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.0
+    container_name: haraya-solutions-mailer
+    ports:
+      - "8025:8025"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailhog.rule=Host(`mailing.harayasolutions.local`)"
+      - "traefik.http.routers.mailhog.entrypoints=web"
+      
   whoami:
     image: containous/whoami
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.whoami.rule=Host(`whoami.local`)"
       - "traefik.http.routers.whoami.entrypoints=web"
-    
+volumes:
+  mariadb_data:
+  
 networks:
   haraya:
     external: true
